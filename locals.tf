@@ -40,8 +40,8 @@ locals {
 locals {
   # Create a map of node pool instances for use with for_each.
   # Keys are static (e.g., "poolkey-0") for plan-time evaluation.
-  node_pool_instances_for_resource = tomap(
-    flatten([
+  node_pool_instances_for_resource = {
+    for item in flatten([
       for np_key, np_config in local.zonetagged_node_pools : [
         for zone_idx, zone_value in (length(np_config.zones) > 0 ? np_config.zones : ["_regional_"]) : {
           _for_each_key = "${np_key}-${zone_idx}"
@@ -62,9 +62,8 @@ locals {
           actual_zones         = (zone_value == "_regional_") ? null : [zone_value]
         }
       ]
-    ]),
-    "_for_each_key"
-  )
+    ]) : item._for_each_key => item # Create map: item.key => item
+  }
 }
 
 locals {
