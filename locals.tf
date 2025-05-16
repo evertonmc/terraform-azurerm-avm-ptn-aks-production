@@ -38,31 +38,27 @@ locals {
 
 
 locals {
-  # Create a map of node pool instances for use with for_each.
-  # Keys are static (e.g., "poolkey-0") for plan-time evaluation.
+  # Create a map of node pool configurations directly from var.node_pools.
+  # The keys are the user-defined static keys from var.node_pools.
   node_pool_instances_for_resource = {
-    for item in flatten([
-      for np_key, np_config in local.zonetagged_node_pools : [
-        for zone_idx, zone_value in (length(np_config.zones) > 0 ? np_config.zones : ["_regional_"]) : {
-          _for_each_key = "${np_key}-${zone_idx}"
+    for np_key, np_config in var.node_pools : np_key => {
+      # Use a consistent naming convention for the node pool in Azure, e.g., direct from user or truncated.
+      # For simplicity, let's use the user-provided name directly, assuming it meets Azure's constraints (1-12 chars, etc.)
+      # The precondition in main.tf will validate this.
+      name = np_config.name
 
-          # Node pool name for Azure, 12 char limit, zone-suffixed if zonal.
-          name_for_azure = substr( (zone_value == "_regional_") ? np_config.name : "${substr(np_config.name, 0, 10)}${zone_value}", 0, 12)
-
-          vm_size              = np_config.vm_size
-          orchestrator_version = np_config.orchestrator_version
-          max_count            = np_config.max_count
-          min_count            = np_config.min_count
-          os_sku               = np_config.os_sku
-          os_disk_type         = np_config.os_disk_type
-          mode                 = np_config.mode
-          os_disk_size_gb      = np_config.os_disk_size_gb
-          tags                 = np_config.tags
-          labels               = np_config.labels
-          actual_zones         = (zone_value == "_regional_") ? null : [zone_value]
-        }
-      ]
-    ]) : item._for_each_key => item # Create map: item.key => item
+      vm_size              = np_config.vm_size
+      orchestrator_version = np_config.orchestrator_version
+      max_count            = np_config.max_count
+      min_count            = np_config.min_count
+      os_sku               = np_config.os_sku
+      os_disk_type         = np_config.os_disk_type
+      mode                 = np_config.mode
+      os_disk_size_gb      = np_config.os_disk_size_gb
+      tags                 = np_config.tags
+      labels               = np_config.labels
+      zones                = np_config.availability_zones # Directly from user input
+    }
   }
 }
 
