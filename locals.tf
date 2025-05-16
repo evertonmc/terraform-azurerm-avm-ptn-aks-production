@@ -38,27 +38,35 @@ locals {
 
 
 locals {
-  # Flatten a list of var.node_pools and zones
-  node_pools = flatten([
-    for pool in local.zonetagged_node_pools : [
-      for zone in pool.zones : {
-        # concatenate name and zone trim to 12 characters
-        name                 = "${substr(pool.name, 0, 10)}${zone}"
-        vm_size              = pool.vm_size
-        orchestrator_version = pool.orchestrator_version
-        max_count            = pool.max_count
-        min_count            = pool.min_count
-        tags                 = pool.tags
-        labels               = pool.labels
-        os_sku               = pool.os_sku
-        os_disk_type         = pool.os_disk_type
-        mode                 = pool.mode
-        os_disk_size_gb      = pool.os_disk_size_gb
-        zone                 = [zone]
-      }
-    ]
-  ])
+  # Create a map of node pool instances for use with for_each.
+  # Keys are static (e.g., "poolkey-0") for plan-time evaluation.
+  node_pool_instances_for_resource = tomap(
+    flatten([
+      for np_key, np_config in local.zonetagged_node_pools : [
+        for zone_idx, zone_value in (length(np_config.zones) > 0 ? np_config.zones : ["_regional_"]) : {
+          _for_each_key = "${np_key}-${zone_idx}"
+
+          # Node pool name for Azure, 12 char limit, zone-suffixed if zonal.
+          name_for_azure = substr( (zone_value == "_regional_") ? np_config.name : "${substr(np_config.name, 0, 10)}${zone_value}", 0, 12)
+
+          vm_size              = np_config.vm_size
+          orchestrator_version = np_config.orchestrator_version
+          max_count            = np_config.max_count
+          min_count            = np_config.min_count
+          os_sku               = np_config.os_sku
+          os_disk_type         = np_config.os_disk_type
+          mode                 = np_config.mode
+          os_disk_size_gb      = np_config.os_disk_size_gb
+          tags                 = np_config.tags
+          labels               = np_config.labels
+          actual_zones         = (zone_value == "_regional_") ? null : [zone_value]
+        }
+      ]
+    ]),
+    "_for_each_key"
+  )
 }
+
 locals {
   log_analytics_tables = ["AKSAudit", "AKSAuditAdmin", "AKSControlPlane", "ContainerLogV2"]
 }

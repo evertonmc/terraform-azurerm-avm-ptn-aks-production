@@ -264,14 +264,11 @@ resource "azurerm_management_lock" "this" {
   notes      = var.lock.kind == "CanNotDelete" ? "Cannot delete the resource or its child resources." : "Cannot delete or modify the resource or its child resources."
 }
 
-
 resource "azurerm_kubernetes_cluster_node_pool" "this" {
-  for_each = tomap({
-    for pool in local.node_pools : pool.name => pool
-  })
+  for_each = local.node_pool_instances_for_resource
 
   kubernetes_cluster_id = azurerm_kubernetes_cluster.this.id
-  name                  = each.value.name
+  name                  = each.value.name_for_azure
   vm_size               = each.value.vm_size
   auto_scaling_enabled  = true
   max_count             = each.value.max_count
@@ -281,15 +278,16 @@ resource "azurerm_kubernetes_cluster_node_pool" "this" {
   os_disk_size_gb       = each.value.os_disk_size_gb
   os_disk_type          = each.value.os_disk_type
   os_sku                = each.value.os_sku
+  mode                  = each.value.mode
   tags                  = each.value.tags
   vnet_subnet_id        = var.network.node_subnet_id
-  zones                 = each.value.zone
+  zones                 = each.value.actual_zones
 
   depends_on = [azapi_update_resource.aks_cluster_post_create]
 
   lifecycle {
     precondition {
-      condition     = can(regex("^[a-z][a-z0-9]{0,11}$", each.value.name))
+      condition     = can(regex("^[a-z][a-z0-9]{0,11}$", each.value.name_for_azure))
       error_message = "The name must begin with a lowercase letter, contain only lowercase letters and numbers, and be between 1 and 12 characters in length."
     }
   }
