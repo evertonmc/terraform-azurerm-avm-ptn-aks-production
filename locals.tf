@@ -57,7 +57,7 @@ locals {
       os_disk_size_gb      = np_config.os_disk_size_gb
       tags                 = np_config.tags
       labels               = np_config.labels
-      zones                = np_config.availability_zones # Directly from user input
+      zones                = np_config.availability_zones
     }
   }
 }

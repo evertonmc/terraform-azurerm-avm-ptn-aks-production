@@ -75,6 +75,7 @@ module "test" {
       os_sku               = "Ubuntu"
       mode                 = "User"
       os_disk_size_gb      = 128
+      availability_zones   = ["1", "2", "3"]
     },
     ingress = {
       name                 = "ingress"
@@ -85,6 +86,7 @@ module "test" {
       os_sku               = "Ubuntu"
       mode                 = "User"
       os_disk_size_gb      = 128
+      availability_zones   = ["1"]
       labels = {
         "ingress" = "true"
       }
